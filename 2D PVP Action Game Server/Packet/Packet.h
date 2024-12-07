@@ -24,3 +24,15 @@ public:
 	virtual void DeSerialaze(char* buffer) = 0;
 };
 
+enum HeaderType
+{
+	ACCEPT,
+	NEWTIME
+};
+
+struct PacketHeader
+{
+	int Length;
+	HeaderType headerType;
+	char userId[20];
+};

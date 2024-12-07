@@ -6,7 +6,7 @@ class Buffer_Converter {
 public:
 	Buffer_Converter();
 
-	PK_Data GetHeader(char* buffer);
+	HeaderType GetHeader(char* buffer);
 
 	~Buffer_Converter();
 };

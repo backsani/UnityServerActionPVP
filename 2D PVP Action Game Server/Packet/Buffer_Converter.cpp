@@ -9,10 +9,10 @@ Buffer_Converter::~Buffer_Converter() {
 
 }
 
-PK_Data Buffer_Converter::GetHeader(char* buffer) 
+HeaderType Buffer_Converter::GetHeader(char* buffer)
 {
-	PK_Data header;
-	memcpy(&header, buffer, sizeof(PK_Data));
+	HeaderType header;
+	memcpy(&header, buffer + 4, sizeof(PK_Data));
 
 	return header;
 }

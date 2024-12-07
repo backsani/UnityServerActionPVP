@@ -5,36 +5,67 @@
 #include <vector>
 #include <thread>
 #include <tchar.h>
+#include "pch.h"
 
 #include "PacketSDK.h"
+#include "ClientInfo.h"
 
 /*
 패킷 추가시 생성자에서 패킷 버퍼에 추가시켜줘야한다. 또한 PacketSDK에서 해당 헤더를 선언해줘야한다.
 */
 
-#define PORT 9000
-#define BUFSIZE 256
-
 class Server
 {
-	WSADATA wsa;
-	SOCKET listen_sock;
-	SOCKADDR_IN ServerAddress;
+	SOCKET listenSocket = INVALID_SOCKET;
 
-	std::vector<SOCKET> client_socket;
-	std::vector<std::unique_ptr<Packet>> packet;
+	std::vector<std::unique_ptr<PacketMaker>> packet;
+
+	std::vector<ClientInfo> mClientInfos;
+
+	std::vector<std::thread> mWorkerThreads;
+
+	std::thread mAccepterThread;
+
+	HANDLE mIOCPHandle = INVALID_HANDLE_VALUE;
+
+	bool mIsWorkerRun = true;
+
+	bool mIsAccepterRun = true;
+
+	char mSocketBuf[1024] = { 0 };
+
 public:
 	Server();
 
-	VOID errQuit(const TCHAR* msg);
-	VOID errDisplay(const TCHAR* msg);
-	VOID setReady();
-	VOID Connect();
-	//bool AccectClient(Packet& packet);
-	VOID ProcessClient(const SOCKET sock);
-	VOID BroadcastPacket(char* buffer, const SOCKET& sock, int length);
+
+	bool InitSocket();
+
+	bool BindSocket();
+
+	bool StartServer(const UINT32 maxClientCount);
+
+	void DestroyThread();
+
+	void CreateClient(const UINT32 maxClientCount);
+
+	bool CreateWokerThread();
+
+	bool CreateAccepterThread();
+
+	void WokerThread();
+
+	void AccepterThread();
+
+	ClientInfo* GetEmptyClientInfo();
+
+	bool BindIOCompletionPort(ClientInfo* pClientInfo);
+
+	bool BindRecv(ClientInfo* pClientInfo);
+
+	bool SendMsg(ClientInfo* pClientInfo, char* pMsg, int nLen);
+
+	void CloseSocket(ClientInfo* pClientInfo);
 
 	~Server();
-
 };
 

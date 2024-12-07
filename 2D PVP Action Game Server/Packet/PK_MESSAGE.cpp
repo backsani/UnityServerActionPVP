@@ -42,7 +42,4 @@ void PK_MESSAGE::DeSerialaze(char* buffer)
 	Length += bufLength;
 
 	this->buffer[bufLength] = '\0';
-
-	this->buffer[bufLength] = '\0';
-
 }

@@ -9,4 +9,3 @@ public:
 	int Serialaze(char* buffer);
 	void DeSerialaze(char* buffer);
 };
-

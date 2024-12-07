@@ -20,13 +20,23 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Buffer_Converter.h" />
+    <ClInclude Include="LoginPacketMaker.h" />
     <ClInclude Include="Packet.h" />
+    <ClInclude Include="PacketMaker.h" />
+    <ClInclude Include="pch.h" />
     <ClInclude Include="PK_MESSAGE.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Buffer_Converter.cpp" />
+    <ClCompile Include="ClientInfo.h" />
+    <ClCompile Include="LoginPacketMaker.cpp" />
     <ClCompile Include="Packet.cpp" />
+    <ClCompile Include="PacketMaker.cpp" />
     <ClCompile Include="PacketSDK.h" />
+    <ClCompile Include="pch.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="PK_MESSAGE.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
@@ -115,6 +125,8 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -129,6 +141,8 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
