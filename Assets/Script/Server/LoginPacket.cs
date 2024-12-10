@@ -9,19 +9,24 @@ using UnityEngine.UIElements;
 
 public class LoginPacket : Packet
 {
+    public LoginPacket() : base()  // 기본 생성자를 호출
+    {
+        
+    }
+
 
     public override byte[] DeSerialzed(byte[] buffer)
     {
         byte[] dataValue = new byte[256];
         int Length = 0;
-        byte[] dataStateType = new byte[Marshal.SizeOf(typeof(ServerUtil.Header.ConnectionState))];
+        byte[] dataStateType = new byte[sizeof(int)];
 
         Length = UnpackingHeader(buffer);
 
         Buffer.BlockCopy(buffer, Length, dataStateType, 0, dataStateType.Length);
         Length += dataStateType.Length;
 
-        ServerConnect.Instance.currentState = (ServerUtil.Header.ConnectionState)Convert.ToInt32(dataStateType);
+        ServerConnect.Instance.currentState = (ServerUtil.Header.ConnectionState)BitConverter.ToInt32(dataStateType);
 
         Buffer.BlockCopy(buffer, Length, dataValue, 0, _packetHeader.Length - Length);
 

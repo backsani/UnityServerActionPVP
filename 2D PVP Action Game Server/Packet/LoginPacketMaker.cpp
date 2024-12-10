@@ -19,7 +19,7 @@ int LoginPacketMaker::Serialzed(char* buffer, int size)
 	memcpy(data + Length, buffer, sizeof(buffer));
 	Length += sizeof(buffer);
 
-	memcpy(buffer, data, sizeof(data));
+	memcpy(buffer, data, Length);
 
 	return Length;
 }

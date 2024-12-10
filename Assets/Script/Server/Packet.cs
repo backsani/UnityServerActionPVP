@@ -1,16 +1,20 @@
+using ServerUtil.Header;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Text;
+using Unity.VisualScripting;
 using UnityEngine;
+using UnityEngine.UIElements;
 
 namespace ServerUtil.Header
 {
     public enum HeaderType
     {
         ACCEPT,
-        NEWTIME
+        NEWTIME,
+        NULL = 99
     };
 
     public enum ConnectionState
@@ -41,6 +45,13 @@ public abstract class Packet
     public abstract byte[] Serialzed(string buffer);
     public abstract byte[] DeSerialzed(byte[] buffer);
 
+    public Packet()
+    {
+        _packetHeader = new PacketHeader();
+        _packetHeader.Length = 0;
+        _packetHeader.headerType = HeaderType.NULL;
+        Debug.Log("매개변수를 받는 Packet 생성자 호출");
+    }
 
     //패킷을 상속받는 자식에서 
 
@@ -76,14 +87,14 @@ public abstract class Packet
 
     protected int UnpackingHeader(byte[] data)
     {
-        byte[] dataLength = new byte[Marshal.SizeOf(typeof(int))];
-        byte[] dataHeaderType = new byte[Marshal.SizeOf(typeof(ServerUtil.Header.HeaderType))];
+        byte[] dataLength = new byte[sizeof(int)];
+        byte[] dataHeaderType = new byte[sizeof(int)];
 
         Buffer.BlockCopy(data, 0, dataLength, 0, dataLength.Length);
         Buffer.BlockCopy(data, dataLength.Length, dataHeaderType, 0, dataHeaderType.Length);
 
-        _packetHeader.Length = Convert.ToInt32(dataLength);
-        _packetHeader.headerType = (ServerUtil.Header.HeaderType)Convert.ToInt32(dataHeaderType);
+        _packetHeader.Length = BitConverter.ToInt32(dataLength, 0);
+        _packetHeader.headerType = (ServerUtil.Header.HeaderType)BitConverter.ToInt32(dataHeaderType, 0);
         //아이디 일단 생략
 
         

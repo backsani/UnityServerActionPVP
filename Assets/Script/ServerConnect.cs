@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Net;
 using System.Net.Sockets;
 using System.Numerics;
 using System.Text;
@@ -80,9 +81,14 @@ public class ServerConnect : MonoBehaviour
     private TcpClient socketConnection;
     private NetworkStream stream;
 
+    private Socket clientSocket;
+    private IPEndPoint socketAdress;
+    private AsyncSocketClient asyncSocketClient;
+
     //패킷 관련 변수
     public List<Packet> packetData = new List<Packet>();
     private LoginPacket PK_login = new LoginPacket();
+    public PacketProcessor packetProcessor = new PacketProcessor();
 
     public ServerUtil.Header.ConnectionState currentState;
 
@@ -93,121 +99,157 @@ public class ServerConnect : MonoBehaviour
     
     void Start()
     {
+        asyncSocketClient = new AsyncSocketClient();
+
         ConnectToTcpServer();
         packetData.Add(PK_login);
 
         UserId = "Unconnected User";
         currentState = ServerUtil.Header.ConnectionState.INIT;
 
+        StartReceive();
     }
 
     private void ConnectToTcpServer()
     {
-        try
-        {
-            socketConnection = new TcpClient("127.0.0.1", 9000);
-            Debug.Log("Connected to server");
-        }
-        catch (Exception e)
-        {
-            Debug.Log("On client connect exception " + e);
-        }
-    }
+        clientSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
 
-    private void SendMessage(byte[] message)
-    {
-        if (socketConnection == null)
-        {
-            Debug.Log("Failed to connect socket");
-            return;
-        }
+        //socketConnection = new TcpClient("127.0.0.1", 9000);
+        socketAdress = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 9000);
+        asyncSocketClient.ConnectToServer(clientSocket, socketAdress);
+        Debug.Log("Connected to server");
         
-        try
-        {
-            // 데이터 전송
-            stream = socketConnection.GetStream();
-
-            if (stream.CanWrite)
-            {
-                stream.Write(message, 0, message.Length);
-                Debug.Log("Client sent message: " + Encoding.ASCII.GetString(message));
-            }
-        }
-        catch (Exception e)
-        {
-            Debug.Log("On client send message exception " + e);
-        }
+        
     }
 
-    private void ReceiveMessage()
+    void StartSend(byte[] message)
     {
-        if (socketConnection == null)
+        SocketAsyncEventArgs sendEventArgs = new SocketAsyncEventArgs();
+
+        sendEventArgs.Completed += OnsendCompleted;
+
+        sendEventArgs.SetBuffer(message, 0, message.Length);
+
+        if(!clientSocket.SendAsync(sendEventArgs))
         {
-            return;
-        }
-
-        try
-        {
-            // 데이터 수신
-            stream = socketConnection.GetStream();
-            if (stream.CanRead)
-            {
-                byte[] buffer = new byte[1024];
-                int bytesRead = stream.Read(buffer, 0, buffer.Length);
-
-                byte[] readBuffer = packetData[bufferCon.GetHeaderType(buffer)].DeSerialzed(buffer);
-                string message = Encoding.ASCII.GetString(readBuffer, 0, readBuffer.Length);
-                //string message = Encoding.ASCII.GetString(buffer, 0, bytesRead);
-                Debug.Log("Server message received: " + message);
-
-                Debug.Log(currentState);
-
-                if (currentState == ServerUtil.Header.ConnectionState.LOGIN)
-                {
-                    Debug.Log("로그인 성공");
-                }
-            }
-        }
-        catch (Exception e)
-        {
-            Debug.Log("On client receive message exception " + e);
+            OnsendCompleted(this, sendEventArgs);
         }
     }
+
+    private void OnsendCompleted(object sender, SocketAsyncEventArgs e) 
+    {
+        // 전송 작업 성공 여부 확인
+        if (e.SocketError == SocketError.Success)
+        {
+            Debug.Log("메시지 전송 완료!");
+
+        }
+        else
+        {
+            // 전송 실패 시 에러 메시지 출력
+            Debug.LogError($"메시지 전송 실패: {e.SocketError}");
+        }
+    }
+
+    private void StartReceive()
+    {
+        SocketAsyncEventArgs receiveEventArgs = new SocketAsyncEventArgs();
+
+        receiveEventArgs.Completed += OnReceiveCompleted;
+
+        byte[] buffer = new byte[1024];
+        receiveEventArgs.SetBuffer(buffer, 0, buffer.Length);
+
+        if (!clientSocket.ReceiveAsync(receiveEventArgs))
+        {
+            OnReceiveCompleted(this, receiveEventArgs);
+        }
+    }
+
+    private void OnReceiveCompleted(object sender, SocketAsyncEventArgs e)
+    {
+        if(e.SocketError == SocketError.Success && e.BytesTransferred > 0)
+        {
+            EnqueueRecvData(e.Buffer);
+
+            Debug.Log("클라이언트 데이터 수신");
+
+            StartReceive();
+        }
+        else if (e.SocketError == SocketError.ConnectionReset || e.BytesTransferred == 0)
+        {
+            Debug.LogWarning("서버와의 연결이 종료되었습니다.");
+            DisconnectServer(); // 연결 종료
+        }
+        else
+        {
+            Debug.LogError($"수신 중 오류 발생: {e.SocketError}");
+        }
+    }
+
 
     void Update()
     {
-        if (Input.GetKeyDown(KeyCode.Space))
-        {
-            SendMessage("Hello from client");
-            ReceiveMessage();
-        }
 
         if (sendQueue.Count > 0)
         {
-            SendMessage(sendQueue.Dequeue());
+            StartSend(sendQueue.Dequeue());
         }
         if (recvQueue.Count > 0)
-            DequeueRecvData();
+        {
+            packetProcessor.ProcessBuffer(recvQueue.Dequeue());
+        }
+            
     }
 
-    private void OnApplicationQuit()
-    {
-        if (socketConnection != null)
-        {
-            stream.Close();
-            socketConnection.Close();
-        }
-    }
+    /*-----------------------
+        Queue(Send,Recv)
+    ------------------------*/
 
     public void EnqueueSendData(byte[] data)
     {
         sendQueue.Enqueue(data);
     }
 
-    public byte[] DequeueRecvData()
+    public void EnqueueRecvData(byte[] data)
     {
-        return recvQueue.Dequeue();
+        recvQueue.Enqueue(data);
     }
+
+    /*-----------------------
+        Disconnect Server
+    ------------------------*/
+
+    public void DisconnectServer()
+    {
+        try
+        {
+            if (clientSocket.Connected)
+            {
+                clientSocket.Shutdown(SocketShutdown.Both);
+            }
+
+            clientSocket.Close();
+            Debug.Log("서버와 연결 종료.");
+        }
+
+        catch(Exception ex) 
+        {
+            Debug.LogError("서버와 연결 종료 중 오류" + ex.Message);
+        }
+    }
+
+    private void OnApplicationQuit()
+    {
+        if (clientSocket != null)
+        {
+            clientSocket.Close();
+        }
+    }
+
+    
+
+    
 
     //private byte[] Serialaze(string message)
     //{

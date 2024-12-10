@@ -29,7 +29,7 @@ int PacketMaker::PackingHeader(char* buffer)
 	memcpy(header + Length, &packetHeader.userId, sizeof(packetHeader.userId));
 	Length += sizeof(packetHeader.userId);
 
-	memcpy(buffer, &header, Length);
+	memcpy(buffer, header, Length);
 
 	return Length;
 }
