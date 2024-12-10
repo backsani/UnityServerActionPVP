@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
 using System.Text;
 using UnityEngine;
 
@@ -42,7 +43,6 @@ public abstract class Packet
 
 
     //패킷을 상속받는 자식에서 
-    public abstract byte[] DeserialazingApply(byte[] data);
 
     protected byte[] PackingHeader(ServerUtil.Header.HeaderType headerType, int bufferSize)
     {
@@ -72,6 +72,22 @@ public abstract class Packet
         Buffer.BlockCopy(byteUserId, 0, result, byteLength.Length + byteheader.Length, byteUserId.Length);  // 실제 메시지
 
         return result;
+    }
+
+    protected int UnpackingHeader(byte[] data)
+    {
+        byte[] dataLength = new byte[Marshal.SizeOf(typeof(int))];
+        byte[] dataHeaderType = new byte[Marshal.SizeOf(typeof(ServerUtil.Header.HeaderType))];
+
+        Buffer.BlockCopy(data, 0, dataLength, 0, dataLength.Length);
+        Buffer.BlockCopy(data, dataLength.Length, dataHeaderType, 0, dataHeaderType.Length);
+
+        _packetHeader.Length = Convert.ToInt32(dataLength);
+        _packetHeader.headerType = (ServerUtil.Header.HeaderType)Convert.ToInt32(dataHeaderType);
+        //아이디 일단 생략
+
+        
+        return dataLength.Length + dataHeaderType.Length + ServerConnect.Instance.IdLength;
     }
 }
 

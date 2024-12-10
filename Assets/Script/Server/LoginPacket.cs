@@ -2,26 +2,30 @@ using ServerUtil.Header;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
 using System.Text;
 using UnityEngine;
 using UnityEngine.UIElements;
 
 public class LoginPacket : Packet
 {
-    
-
-    public override byte[] DeserialazingApply(byte[] data)
-    {
-        throw new System.NotImplementedException();
-    }
 
     public override byte[] DeSerialzed(byte[] buffer)
     {
-        char[] dataValue = new char[20];
-        _packetHeader.headerType = ServerUtil.Header.HeaderType.ACCEPT;
-        _packetHeader.userId = Encoding.ASCII.GetBytes(dataValue);
+        byte[] dataValue = new byte[256];
+        int Length = 0;
+        byte[] dataStateType = new byte[Marshal.SizeOf(typeof(ServerUtil.Header.ConnectionState))];
 
-        throw new System.NotImplementedException();
+        Length = UnpackingHeader(buffer);
+
+        Buffer.BlockCopy(buffer, Length, dataStateType, 0, dataStateType.Length);
+        Length += dataStateType.Length;
+
+        ServerConnect.Instance.currentState = (ServerUtil.Header.ConnectionState)Convert.ToInt32(dataStateType);
+
+        Buffer.BlockCopy(buffer, Length, dataValue, 0, _packetHeader.Length - Length);
+
+        return dataValue;
     }
 
     public override byte[] Serialzed(string buffer)

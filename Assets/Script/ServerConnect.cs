@@ -86,6 +86,8 @@ public class ServerConnect : MonoBehaviour
 
     public ServerUtil.Header.ConnectionState currentState;
 
+    Buffer_Converter bufferCon;
+
     [SerializeField]
     private Text message;
     
@@ -152,10 +154,18 @@ public class ServerConnect : MonoBehaviour
             {
                 byte[] buffer = new byte[1024];
                 int bytesRead = stream.Read(buffer, 0, buffer.Length);
-                byte[] readBuffer = Deserialaze(buffer);
+
+                byte[] readBuffer = packetData[bufferCon.GetHeaderType(buffer)].DeSerialzed(buffer);
                 string message = Encoding.ASCII.GetString(readBuffer, 0, readBuffer.Length);
                 //string message = Encoding.ASCII.GetString(buffer, 0, bytesRead);
                 Debug.Log("Server message received: " + message);
+
+                Debug.Log(currentState);
+
+                if (currentState == ServerUtil.Header.ConnectionState.LOGIN)
+                {
+                    Debug.Log("로그인 성공");
+                }
             }
         }
         catch (Exception e)
@@ -176,6 +186,8 @@ public class ServerConnect : MonoBehaviour
         {
             SendMessage(sendQueue.Dequeue());
         }
+        if (recvQueue.Count > 0)
+            DequeueRecvData();
     }
 
     private void OnApplicationQuit()
@@ -190,6 +202,11 @@ public class ServerConnect : MonoBehaviour
     public void EnqueueSendData(byte[] data)
     {
         sendQueue.Enqueue(data);
+    }
+
+    public byte[] DequeueRecvData()
+    {
+        return recvQueue.Dequeue();
     }
 
     //private byte[] Serialaze(string message)
@@ -217,14 +234,14 @@ public class ServerConnect : MonoBehaviour
     //    //둘 중 하나만 있어도 될 것 같음
     //}
 
-    private byte[] Deserialaze(byte[] buffer)
-    {
-        int currentHeader = (int)buffer[0]; //리틀 엔디안으로 저장되면 값을 3으로 바꿔야함. 추후 4바이트를 읽어서 int로 변환
+    //private byte[] Deserialaze(byte[] buffer)
+    //{
+    //    int currentHeader = (int)buffer[0]; //리틀 엔디안으로 저장되면 값을 3으로 바꿔야함. 추후 4바이트를 읽어서 int로 변환
 
-        byte[] message = packetData[currentHeader].DeserialazingApply(buffer); //값들을 처리한 후 메세지(디버그)를 남겨준다.
-        this.message.text = Encoding.UTF8.GetString(message);
+    //    byte[] message = packetData[currentHeader].DeserialazingApply(buffer); //값들을 처리한 후 메세지(디버그)를 남겨준다.
+    //    this.message.text = Encoding.UTF8.GetString(message);
 
-        return message;
-    }
+    //    return message;
+    //}
 
 }
