@@ -5,8 +5,9 @@
 */
 Server::Server() {
 	this->packet.push_back(std::make_unique<LoginPacketMaker>());
+	this->packet.push_back(std::make_unique<MatchPacketMaker>());
 	// 윈속 초기화
-	
+	mMatchManager = std::make_shared<MatchManager>();
 }
 
 Server::~Server()
@@ -153,7 +154,7 @@ void Server::WokerThread()
 		//client가 접속을 끊었을때..			
 		if (FALSE == bSuccess || (0 == dwIoSize && TRUE == bSuccess))
 		{
-			printf("socket(%d) 접속 끊김\n", (int)pClientInfo->_socketClient);
+			printf("socket(%d) 접속 끊김\n", (int)pClientInfo->GetSocket());
 			CloseSocket(pClientInfo);
 			continue;
 		}
@@ -182,16 +183,32 @@ void Server::WokerThread()
 
 					//ConnectionState를 보고 로그인인지 회원가입인지 처리
 
-					memcpy(&pClientInfo->mUserId, loginPacket->GetUserId(), sizeof(loginPacket->GetUserId()));
+					pClientInfo->SetUserId(loginPacket->GetUserId());
 
-					printf("[유저 접속] msg : %s\n", pClientInfo->mUserId);
+					printf("[유저 접속] msg : %s\n", pClientInfo->GetUserId());
 					loginPacket->SetConnectionInfo(ConnectionState::LOGIN_SUCCESS);
 
-					memcpy(&pClientInfo->mSendBuf, pClientInfo->mUserId, sizeof(pClientInfo->mUserId));
+					memcpy(&pClientInfo->mSendBuf, pClientInfo->GetUserId(), sizeof(pClientInfo->GetUserId()));
 				}
 				break;
-			case HeaderType::NEWTIME:
+			case HeaderType::MATCH:
+				{
+				auto matchPacket = static_cast<MatchPacketMaker*>(packet[currentHeader].get());
+
+				printf("[매칭 시도] msg : %s\n", pClientInfo->GetUserId());
+
+				//매칭 작업
+				mMatchManager->AddClientQueue(pClientInfo);
+
+				matchPacket->SetConnectionInfo(ConnectionState::MATCH_FIND);
+
+				ConnectionState currentState = matchPacket->GetConnectionInfo();
+
+				memcpy(&pClientInfo->mSendBuf, &currentState, sizeof(currentState));
+				}
+				
 				break;
+
 			default:
 				printf("[오류] not exists Packet\n");
 				break;
@@ -216,7 +233,7 @@ void Server::WokerThread()
 		//예외 상황
 		else
 		{
-			printf("socket(%d)에서 예외상황\n", (int)pClientInfo->_socketClient);
+			printf("socket(%d)에서 예외상황\n", (int)pClientInfo->GetSocket());
 		}
 
 	}
@@ -239,8 +256,8 @@ void Server::AccepterThread()
 		}
 
 		//클라이언트 접속 요청이 들어올 때까지 기다린다.
-		pClientInfo->_socketClient = accept(listenSocket, (SOCKADDR*)&stClientAddr, &nAddrLen);
-		if (INVALID_SOCKET == pClientInfo->_socketClient)
+		pClientInfo->SetSocket(accept(listenSocket, (SOCKADDR*)&stClientAddr, &nAddrLen));
+		if (INVALID_SOCKET == pClientInfo->GetSocket())
 		{
 			continue;
 		}
@@ -257,7 +274,7 @@ void Server::AccepterThread()
 			return;
 		}
 
-		printf("클라이언트 접속 : SOCKET(%d)\n", (int)pClientInfo->_socketClient);
+		printf("클라이언트 접속 : SOCKET(%d)\n", (int)pClientInfo->GetSocket());
 
 		//클라이언트 갯수 증가
 		//++mClientCnt;
@@ -268,7 +285,7 @@ ClientInfo* Server::GetEmptyClientInfo()
 {
 	for (auto& client : mClientInfos)
 	{
-		if (INVALID_SOCKET == client._socketClient)
+		if (INVALID_SOCKET == client.GetSocket())
 		{
 			return &client;
 		}
@@ -302,7 +319,7 @@ void Server::DestroyThread()
 bool Server::BindIOCompletionPort(ClientInfo* pClientInfo)
 {
 	//socket과 pClientInfo를 CompletionPort객체와 연결시킨다.
-	auto hIOCP = CreateIoCompletionPort((HANDLE)pClientInfo->_socketClient
+	auto hIOCP = CreateIoCompletionPort((HANDLE)pClientInfo->GetSocket()
 		, mIOCPHandle
 		, (ULONG_PTR)(pClientInfo), 0);
 
@@ -327,7 +344,7 @@ bool Server::BindRecv(ClientInfo* pClientInfo)
 	pClientInfo->_recvOverlappedEx._wsaBuf.buf = pClientInfo->mRecvBuf;
 	pClientInfo->_recvOverlappedEx._operation = IOOperation::RECV;
 
-	int nRet = WSARecv(pClientInfo->_socketClient,
+	int nRet = WSARecv(pClientInfo->GetSocket(),
 		&(pClientInfo->_recvOverlappedEx._wsaBuf),
 		1,
 		&dwRecvNumBytes,
@@ -360,7 +377,7 @@ bool Server::SendMsg(ClientInfo* pClientInfo, char* pMsg, int nLen)
 	pClientInfo->_sendOverlappedEx._wsaBuf.buf = pClientInfo->mSendBuf;
 	pClientInfo->_sendOverlappedEx._operation = IOOperation::SEND;
 
-	int nRet = WSASend(pClientInfo->_socketClient,
+	int nRet = WSASend(pClientInfo->GetSocket(),
 		&(pClientInfo->_sendOverlappedEx._wsaBuf),
 		1,
 		&dwRecvNumBytes,
@@ -391,13 +408,13 @@ void Server::CloseSocket(ClientInfo* pClientInfo)
 	}
 
 	//socketClose소켓의 데이터 송수신을 모두 중단 시킨다.
-	shutdown(pClientInfo->_socketClient, SD_BOTH);
+	shutdown(pClientInfo->GetSocket(), SD_BOTH);
 
 	//소켓 옵션을 설정한다.
-	setsockopt(pClientInfo->_socketClient, SOL_SOCKET, SO_LINGER, (char*)&stLinger, sizeof(stLinger));
+	setsockopt(pClientInfo->GetSocket(), SOL_SOCKET, SO_LINGER, (char*)&stLinger, sizeof(stLinger));
 
 	//소켓 연결을 종료 시킨다. 
-	closesocket(pClientInfo->_socketClient);
+	closesocket(pClientInfo->GetSocket());
 
-	pClientInfo->_socketClient = INVALID_SOCKET;
+	pClientInfo->SetSocket(INVALID_SOCKET);
 }

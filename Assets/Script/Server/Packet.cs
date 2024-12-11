@@ -13,7 +13,8 @@ namespace ServerUtil.Header
     public enum HeaderType
     {
         ACCEPT,
-        NEWTIME,
+        MATCH,
+        INGAME,
         NULL = 99
     };
 
@@ -25,7 +26,11 @@ namespace ServerUtil.Header
         LOGIN_SUCCESS,
         SIGNUP_SUCCESS,
         LOGIN_FAIL,
-        SIGNUP_FAIL
+        SIGNUP_FAIL,
+        MATCH_REQUEST,
+        MATCH_FIND,
+        MATCH_ACCEPT,
+        MATCH_REFUSE
     };
 }
 

@@ -1,17 +1,6 @@
 #pragma once
 #include "PacketMaker.h"
 
-enum ConnectionState
-{
-	INIT,
-	LOGIN,
-	SIGNUP,
-	LOGIN_SUCCESS,
-	SIGNUP_SUCCESS,
-	LOGIN_FAIL,
-	SIGNUP_FAIL
-};
-
 class LoginPacketMaker : public PacketMaker
 {
 private:

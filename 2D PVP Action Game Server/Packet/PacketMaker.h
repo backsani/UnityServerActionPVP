@@ -2,6 +2,21 @@
 #include "pch.h"
 #include "Packet.h"
 
+enum ConnectionState
+{
+	INIT,
+	LOGIN,
+	SIGNUP,
+	LOGIN_SUCCESS,
+	SIGNUP_SUCCESS,
+	LOGIN_FAIL,
+	SIGNUP_FAIL,
+	MATCH_REQUEST,
+	MATCH_FIND,
+	MATCH_ACCEPT,
+	MATCH_REFUSE
+};
+
 class PacketMaker
 {
 protected:

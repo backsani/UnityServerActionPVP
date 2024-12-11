@@ -9,6 +9,7 @@
 
 #include "PacketSDK.h"
 #include "ClientInfo.h"
+#include "MatchManager.h"
 
 /*
 패킷 추가시 생성자에서 패킷 버퍼에 추가시켜줘야한다. 또한 PacketSDK에서 해당 헤더를 선언해줘야한다.
@@ -27,6 +28,8 @@ class Server
 	std::thread mAccepterThread;
 
 	HANDLE mIOCPHandle = INVALID_HANDLE_VALUE;
+
+	std::shared_ptr<MatchManager> mMatchManager;
 
 	bool mIsWorkerRun = true;
 

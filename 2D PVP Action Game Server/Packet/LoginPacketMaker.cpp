@@ -2,6 +2,7 @@
 
 LoginPacketMaker::LoginPacketMaker()
 {
+	ConnectionInfo = INIT;
 	packetHeader.headerType = ACCEPT;
 	memset(UserID, 0, sizeof(UserID)); 
 	memset(UserPassword, 0, sizeof(UserPassword)); 

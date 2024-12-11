@@ -12,6 +12,7 @@ public class LoginManager : MonoBehaviour
     {
         ServerConnect.Instance.UserId = _userId.text;
         ServerConnect.Instance.currentState = ServerUtil.Header.ConnectionState.LOGIN;
+
         ServerConnect.Instance.EnqueueSendData( ServerConnect.Instance.packetData[(int)ServerUtil.Header.HeaderType.ACCEPT].Serialzed(_userId.text));
     }
 }

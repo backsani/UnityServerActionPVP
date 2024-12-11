@@ -15,7 +15,7 @@ public class MatchingUiManager : MonoBehaviour
 
     public void TryMatchButton()
     {
-        Debug.Log("TryMatchButton");
+        ServerConnect.Instance.EnqueueSendData(ServerConnect.Instance.packetData[(int)ServerUtil.Header.HeaderType.ACCEPT].Serialzed(ServerUtil.Header.ConnectionState.MATCH_REQUEST.ToString()));
     }
 
     public void TryInfoButton()
